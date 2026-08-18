@@ -1,0 +1,103 @@
+name: BTIT immediate drand resolve
+
+on:
+  push:
+    branches:
+      - btit-round-6069520-resolve
+    paths:
+      - .github/workflows/btit-drand-resolve.yml
+      - btit-immediate-drand-6125941/t1_commitment.json
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out sealed commitment
+        uses: actions/checkout@v4
+
+      - name: Resolve committed drand round
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import urllib.request
+
+          root = pathlib.Path('btit-immediate-drand-6125941')
+          commit_path = root / 't1_commitment.json'
+          commitment = json.loads(commit_path.read_text())
+
+          stored_hash = commitment['commit_sha256']
+          body = dict(commitment)
+          body.pop('commit_sha256', None)
+          canonical = json.dumps(body, sort_keys=True, separators=(',', ':')).encode()
+          recomputed_hash = hashlib.sha256(canonical).hexdigest()
+          if recomputed_hash != stored_hash:
+              raise SystemExit(f'COMMITMENT_HASH_MISMATCH {recomputed_hash} != {stored_hash}')
+
+          selected_round = int(commitment['selected_round'])
+          predicted_bits = commitment['predicted_token_16']
+          endpoints = [
+              f'https://api.drand.sh/v2/beacons/default/rounds/{selected_round}',
+              f'https://api2.drand.sh/v2/beacons/default/rounds/{selected_round}',
+              f'https://api3.drand.sh/v2/beacons/default/rounds/{selected_round}',
+          ]
+
+          beacon = None
+          used_url = None
+          errors = []
+          for url in endpoints:
+              try:
+                  request = urllib.request.Request(url, headers={'User-Agent': 'btit-immediate-resolver/1.0'})
+                  with urllib.request.urlopen(request, timeout=20) as response:
+                      candidate = json.loads(response.read().decode('utf-8'))
+                  if int(candidate['round']) != selected_round:
+                      raise RuntimeError(f"wrong round {candidate.get('round')}")
+                  if not candidate.get('signature'):
+                      raise RuntimeError('missing signature')
+                  beacon = candidate
+                  used_url = url
+                  break
+              except Exception as exc:
+                  errors.append(f'{url}: {type(exc).__name__}: {exc}')
+
+          if beacon is None:
+              raise SystemExit('ALL_DRAND_ENDPOINTS_FAILED\n' + '\n'.join(errors))
+
+          signature_bytes = bytes.fromhex(beacon['signature'])
+          signature_sha256 = hashlib.sha256(signature_bytes).hexdigest()
+          actual_bits = bin(int(signature_sha256[:4], 16))[2:].zfill(16)
+          hamming = sum(a != b for a, b in zip(predicted_bits, actual_bits))
+
+          result = {
+              'schema': 'btit.immediate-temporal-anchor.resolve.v1',
+              'commit_sha256': stored_hash,
+              'commit_hash_verified': True,
+              'selected_round': selected_round,
+              'predicted_token_16': predicted_bits,
+              'actual_token_16': actual_bits,
+              'exact_match': predicted_bits == actual_bits,
+              'hamming_distance': hamming,
+              'bitwise_matches': 16 - hamming,
+              'signature_sha256': signature_sha256,
+              'source_url': used_url,
+              'beacon_round': int(beacon['round']),
+              'beacon_randomness': beacon.get('randomness'),
+          }
+          root.mkdir(parents=True, exist_ok=True)
+          (root / 'resolution.json').write_text(json.dumps(result, indent=2) + '\n')
+          print('BTIT_RESOLUTION_JSON=' + json.dumps(result, sort_keys=True))
+          print(json.dumps(result, indent=2))
+          PY
+
+      - name: Upload resolution artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: btit-drand-resolution-6125941
+          path: btit-immediate-drand-6125941/resolution.json
+          if-no-files-found: error
