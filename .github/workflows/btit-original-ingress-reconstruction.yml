@@ -1,0 +1,30 @@
+name: BTIT original ingress reconstruction
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - btit-original-ingress-reconstruction/**
+      - .github/workflows/btit-original-ingress-reconstruction.yml
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ingress reconstruction
+        run: python3 btit-original-ingress-reconstruction/run_reconstruction.py
+
+      - name: Upload sealed receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: btit-original-ingress-reconstruction
+          path: |
+            btit-original-ingress-reconstruction/raw_round_receipts.json
+            btit-original-ingress-reconstruction/result.json
