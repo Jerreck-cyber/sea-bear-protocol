@@ -7,6 +7,12 @@ on:
     paths:
       - .github/workflows/btit-drand-resolve.yml
       - btit-immediate-drand-6125941/t1_commitment.json
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/btit-drand-resolve.yml
+      - btit-immediate-drand-6125941/t1_commitment.json
 
 permissions:
   contents: read
