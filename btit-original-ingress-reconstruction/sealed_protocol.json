@@ -1,0 +1,51 @@
+{
+  "schema": "btit.latent-path.ingress-reconstruction.v1",
+  "purpose": "Reconstruct the original July latent-path wrapper around the temporal-anchor ingress without decoding BTIT outputs into dates and without imposing a +1200-round relation.",
+  "preserved_from_original": {
+    "original_schema": "btit.latent-path.backward-accessibility.v1",
+    "dataset": "ETTh2 low useless load tail360 prev1440",
+    "dataset_csv": "data\\r1_100row_fresh_stress_panel\\etth2_low_useless_load_tail360_prev1440.csv",
+    "dataset_rows": 360,
+    "target_source_label": "drand/default",
+    "path_count": 100,
+    "instantiated_count": 34,
+    "latent_count": 66,
+    "selection_rule": "top 2 primitives per engine/transform plus protected primitives",
+    "output_mapping": {
+      "method": "clip forecast to dataset 5th-95th percentile and divide into 16 equal bins",
+      "lo": -2.8900999427,
+      "hi": -1.225999951
+    },
+    "weighting": {
+      "method": "exp(-heldout_mae / temperature)",
+      "temperature": 0.37441385497689483
+    }
+  },
+  "anchor_ingress_rule": {
+    "field": "latest_round_observed_at_t1",
+    "source": "raw HTTP response from drand default /rounds/latest",
+    "allowed_relays": [
+      "https://api.drand.sh/v2/beacons/default/rounds/latest",
+      "https://api2.drand.sh/v2/beacons/default/rounds/latest",
+      "https://api3.drand.sh/v2/beacons/default/rounds/latest"
+    ],
+    "btit_output_used_to_choose_round": false,
+    "calendar_date_used_during_generation": false,
+    "fixed_offset": null,
+    "fallback_round": null,
+    "on_fetch_failure": "record failure; do not synthesize or substitute a round"
+  },
+  "bundle": {
+    "request_count": 50,
+    "relay_assignment": "round-robin across the three allowed relays",
+    "raw_rounds_sealed_before_calendar_conversion": true
+  },
+  "comparison_after_seal": [
+    "convert each received raw drand round to its default-chain UTC timestamp",
+    "compare received round with the round expected from its receipt timestamp",
+    "flag stale/past ingress only after raw receipt is sealed",
+    "compare any anomaly with original 6068320 event"
+  ],
+  "claim_boundary": "This reconstructs the observable ingress role, not the missing original producer script. A clean current-round result does not explain the 2026-07 anomaly; it tests whether the same wrapper role presently produces anomalous past anchors.",
+  "protocol_sha256": "f8ccc3dd31bb101941433a550e8802fff91cd602250f5a1a6e51af2740898a9e"
+}
