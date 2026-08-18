@@ -1,0 +1,33 @@
+{
+  "schema": "btit.immediate-count-anchor.commit.v1",
+  "design_sha256": "c8440c1693706c232469feb9632c65e05dbf740aa6e88fca0017856cab28a5d2",
+  "trials": [
+    {"trial":1,"selected_round":6043738,"predicted_count":2},
+    {"trial":2,"selected_round":5744083,"predicted_count":1},
+    {"trial":3,"selected_round":6204579,"predicted_count":4},
+    {"trial":4,"selected_round":6298331,"predicted_count":1},
+    {"trial":5,"selected_round":5864636,"predicted_count":4},
+    {"trial":6,"selected_round":5692422,"predicted_count":2},
+    {"trial":7,"selected_round":5635303,"predicted_count":1},
+    {"trial":8,"selected_round":5549910,"predicted_count":4},
+    {"trial":9,"selected_round":5981518,"predicted_count":1},
+    {"trial":10,"selected_round":5714114,"predicted_count":1},
+    {"trial":11,"selected_round":5674630,"predicted_count":3},
+    {"trial":12,"selected_round":6149545,"predicted_count":4},
+    {"trial":13,"selected_round":5559941,"predicted_count":2},
+    {"trial":14,"selected_round":6164443,"predicted_count":1},
+    {"trial":15,"selected_round":5953330,"predicted_count":4},
+    {"trial":16,"selected_round":5935501,"predicted_count":1},
+    {"trial":17,"selected_round":6152328,"predicted_count":4},
+    {"trial":18,"selected_round":5701256,"predicted_count":2},
+    {"trial":19,"selected_round":5738114,"predicted_count":1},
+    {"trial":20,"selected_round":5890489,"predicted_count":4},
+    {"trial":21,"selected_round":5701994,"predicted_count":1},
+    {"trial":22,"selected_round":5698181,"predicted_count":1},
+    {"trial":23,"selected_round":6241426,"predicted_count":3},
+    {"trial":24,"selected_round":6085269,"predicted_count":4}
+  ],
+  "actual_count_rule": "1 + (first byte of SHA256(drand signature bytes) mod 4)",
+  "drand_lookup_done_before_commit": false,
+  "commit_sha256": "c07563734d012fbba460453ca46ce6fe26368dcf5f17949c67daedefd39ee27f"
+}
