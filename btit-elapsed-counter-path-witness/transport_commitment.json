@@ -1,0 +1,11 @@
+{
+  "schema": "btit.elapsed-counter-path-witness.transport.v1",
+  "source_commit_sha256": "fe89465ff62467b531887f5a9c16d7dc1fdc8d90e56b035bc122a1187f4713be",
+  "selected_anchor_round": 5601903,
+  "predicted_elapsed_seconds": 10616852,
+  "predicted_path_witness_hex32": "631c1ea2",
+  "lookup_done_before_transport_seal": false,
+  "path_rule": "At resolution fetch latest drand round; choose 16 equally spaced rounds from anchor through latest inclusive; concatenate canonical [round,signature] pairs; SHA256; compare first 8 hex chars.",
+  "elapsed_rule": "30 * (latest_round - selected_anchor_round)",
+  "transport_sha256": "919152613867d3e22e328a547e5a797d3eb77107e9d447fe90f390c220dcaaf5"
+}

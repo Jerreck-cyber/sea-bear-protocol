@@ -1,0 +1,87 @@
+{
+  "schema": "btit.immediate-temporal-anchor.commit.v1",
+  "design_sha256": "fc6b436329f41bccfca1fb6b191ddbdfca6d9b6d08627ec97216d2085fde1ee8",
+  "candidate_rounds": [
+    5552567,
+    6292373,
+    5928110,
+    6057243,
+    5830866,
+    6250793,
+    6222384,
+    6107211,
+    5502931,
+    5903399,
+    6267128,
+    5987837,
+    6115425,
+    6039933,
+    5943952,
+    6125941
+  ],
+  "series_runs": [
+    {
+      "dataset": "weather",
+      "winner": "reservoir_computing:reservoir_units_12",
+      "best_mae": 0.03597011487839395,
+      "next_value_used": 5.203135989515974,
+      "mapping_lo": 1.5695000000000001,
+      "mapping_hi": 4.971499999999999,
+      "symbol_index": 15,
+      "bits": "1111",
+      "fallback_used": false
+    },
+    {
+      "dataset": "electricity",
+      "winner": "koopman_hankel_dmd:hankel_dmd_delay_3",
+      "best_mae": 16.315005568972275,
+      "next_value_used": 177.00511952345417,
+      "mapping_lo": 129.9,
+      "mapping_hi": 307.04999999999995,
+      "symbol_index": 4,
+      "bits": "0100",
+      "fallback_used": false
+    },
+    {
+      "dataset": "exchange",
+      "winner": "standard_control:naive",
+      "best_mae": 2.6527272727272354e-05,
+      "next_value_used": 0.009609,
+      "mapping_lo": 0.00953795,
+      "mapping_hi": 0.010284749999999999,
+      "symbol_index": 1,
+      "bits": "0001",
+      "fallback_used": false
+    },
+    {
+      "dataset": "traffic",
+      "winner": "reservoir_computing:reservoir_units_12",
+      "best_mae": 0.020236534649932966,
+      "next_value_used": 0.03904847276219712,
+      "mapping_lo": 0.01524,
+      "mapping_hi": 0.1880899999999999,
+      "symbol_index": 2,
+      "bits": "0010",
+      "fallback_used": false
+    },
+    {
+      "dataset": "etth2",
+      "winner": "standard_control:naive",
+      "best_mae": 0.2506909044909091,
+      "next_value_used": -1.300999999,
+      "mapping_lo": -2.911000013,
+      "mapping_hi": -1.215000033,
+      "symbol_index": 15,
+      "bits": "1111",
+      "fallback_used": false
+    }
+  ],
+  "bitstream_20": "11110100000100101111",
+  "selector_bits": "1111",
+  "selected_index": 15,
+  "selected_round": 6125941,
+  "predicted_token_16": "0100000100101111",
+  "verification_rule": "SHA256(signature bytes), first 16 bits",
+  "external_lookup_done_before_commit": false,
+  "commit_sha256": "9df697af19ac39679b917baf09d857bae7853cd2b809732765e8c0def332022e"
+}

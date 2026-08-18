@@ -1,0 +1,96 @@
+name: BTIT elapsed counter path witness
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/btit-elapsed-counter-path-witness.yml
+      - btit-elapsed-counter-path-witness/transport_commitment.json
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve elapsed counter and path witness
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, urllib.request
+          root=pathlib.Path('btit-elapsed-counter-path-witness')
+          c=json.loads((root/'transport_commitment.json').read_text())
+          stored=c['transport_sha256']
+          body=dict(c); body.pop('transport_sha256',None)
+          recomputed=hashlib.sha256(json.dumps(body,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+          if recomputed != stored:
+              raise SystemExit(f'HASH_MISMATCH {recomputed} != {stored}')
+
+          def fetch(round_no=None):
+              if round_no is None:
+                  urls=[
+                    'https://api.drand.sh/v2/beacons/default/rounds/latest',
+                    'https://api2.drand.sh/v2/beacons/default/rounds/latest',
+                    'https://api3.drand.sh/v2/beacons/default/rounds/latest',
+                  ]
+              else:
+                  urls=[
+                    f'https://api.drand.sh/v2/beacons/default/rounds/{round_no}',
+                    f'https://api2.drand.sh/v2/beacons/default/rounds/{round_no}',
+                    f'https://api3.drand.sh/v2/beacons/default/rounds/{round_no}',
+                  ]
+              errs=[]
+              for u in urls:
+                  try:
+                      req=urllib.request.Request(u,headers={'User-Agent':'btit-path-witness/1.0'})
+                      with urllib.request.urlopen(req,timeout=20) as resp:
+                          d=json.loads(resp.read().decode())
+                      return d,u
+                  except Exception as exc:
+                      errs.append(f'{u}: {type(exc).__name__}: {exc}')
+              raise RuntimeError('\n'.join(errs))
+
+          latest,latest_url=fetch(None)
+          latest_round=int(latest['round'])
+          anchor=int(c['selected_anchor_round'])
+          if latest_round <= anchor:
+              raise SystemExit('LATEST_NOT_AFTER_ANCHOR')
+          actual_elapsed=30*(latest_round-anchor)
+
+          pts=[]
+          for i in range(16):
+              r=round(anchor + (latest_round-anchor)*i/15)
+              d,u=fetch(r)
+              pts.append([int(d['round']), d['signature']])
+          canonical=json.dumps(pts,separators=(',',':')).encode()
+          witness=hashlib.sha256(canonical).hexdigest()[:8]
+
+          result={
+            'schema':'btit.elapsed-counter-path-witness.resolve.v1',
+            'transport_hash_verified':True,
+            'anchor_round':anchor,
+            'latest_round':latest_round,
+            'actual_elapsed_seconds':actual_elapsed,
+            'predicted_elapsed_seconds':int(c['predicted_elapsed_seconds']),
+            'elapsed_exact_match':actual_elapsed==int(c['predicted_elapsed_seconds']),
+            'elapsed_error_seconds':int(c['predicted_elapsed_seconds'])-actual_elapsed,
+            'actual_path_witness_hex32':witness,
+            'predicted_path_witness_hex32':c['predicted_path_witness_hex32'],
+            'path_witness_exact_match':witness==c['predicted_path_witness_hex32'],
+            'checkpoints':pts,
+            'latest_source_url':latest_url,
+          }
+          root.mkdir(parents=True,exist_ok=True)
+          (root/'resolution.json').write_text(json.dumps(result,indent=2)+'\n')
+          print('BTIT_PATH_WITNESS_RESOLUTION='+json.dumps(result,sort_keys=True))
+          print(json.dumps(result,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: btit-elapsed-counter-path-witness-resolution
+          path: btit-elapsed-counter-path-witness/resolution.json
+          if-no-files-found: error

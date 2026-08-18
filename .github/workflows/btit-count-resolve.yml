@@ -1,0 +1,103 @@
+name: BTIT immediate count-anchor resolve
+
+on:
+  push:
+    branches:
+      - btit-round-6069520-resolve
+    paths:
+      - .github/workflows/btit-count-resolve.yml
+      - btit-immediate-count-anchor/batch_commitment.json
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/btit-count-resolve.yml
+      - btit-immediate-count-anchor/batch_commitment.json
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-counts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out sealed commitment
+        uses: actions/checkout@v4
+
+      - name: Resolve all committed counts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, math, pathlib, urllib.request
+
+          root = pathlib.Path('btit-immediate-count-anchor')
+          commitment = json.loads((root/'batch_commitment.json').read_text())
+          stored = commitment['commit_sha256']
+          body = dict(commitment)
+          body.pop('commit_sha256', None)
+          recomputed = hashlib.sha256(json.dumps(body, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+          if recomputed != stored:
+              raise SystemExit(f'COMMITMENT_HASH_MISMATCH {recomputed} != {stored}')
+
+          rows=[]
+          for t in commitment['trials']:
+              r=int(t['selected_round'])
+              pred=int(t['predicted_count'])
+              endpoints=[
+                  f'https://api.drand.sh/v2/beacons/default/rounds/{r}',
+                  f'https://api2.drand.sh/v2/beacons/default/rounds/{r}',
+                  f'https://api3.drand.sh/v2/beacons/default/rounds/{r}',
+              ]
+              beacon=None; used=None; errs=[]
+              for url in endpoints:
+                  try:
+                      req=urllib.request.Request(url,headers={'User-Agent':'btit-count-resolver/1.0'})
+                      with urllib.request.urlopen(req,timeout=20) as resp:
+                          candidate=json.loads(resp.read().decode())
+                      if int(candidate['round']) != r or not candidate.get('signature'):
+                          raise RuntimeError('bad beacon response')
+                      beacon=candidate; used=url; break
+                  except Exception as exc:
+                      errs.append(f'{url}: {type(exc).__name__}: {exc}')
+              if beacon is None:
+                  raise SystemExit('ALL_ENDPOINTS_FAILED for round '+str(r)+'\n'+'\n'.join(errs))
+              sig=bytes.fromhex(beacon['signature'])
+              digest=hashlib.sha256(sig).digest()
+              actual=1+(digest[0] % 4)
+              rows.append({
+                  'trial':int(t['trial']),
+                  'selected_round':r,
+                  'predicted_count':pred,
+                  'actual_count':actual,
+                  'match':pred==actual,
+                  'signature_sha256':hashlib.sha256(sig).hexdigest(),
+                  'source_url':used,
+              })
+
+          n=len(rows); k=sum(x['match'] for x in rows); p=.25
+          p_upper=sum(math.comb(n,i)*(p**i)*((1-p)**(n-i)) for i in range(k,n+1))
+          expected=n*p
+          result={
+              'schema':'btit.immediate-count-anchor.resolve.v1',
+              'commit_sha256':stored,
+              'commit_hash_verified':True,
+              'n_trials':n,
+              'matches':k,
+              'match_rate':k/n,
+              'chance_rate':p,
+              'expected_matches':expected,
+              'binomial_upper_tail_p':p_upper,
+              'trials':rows,
+          }
+          (root/'resolution.json').write_text(json.dumps(result,indent=2)+'\n')
+          print('BTIT_COUNT_RESOLUTION_JSON='+json.dumps(result,sort_keys=True))
+          print(json.dumps(result,indent=2))
+          PY
+
+      - name: Upload count resolution artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: btit-count-anchor-resolution
+          path: btit-immediate-count-anchor/resolution.json
+          if-no-files-found: error
